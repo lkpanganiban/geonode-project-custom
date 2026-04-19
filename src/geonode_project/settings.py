@@ -49,8 +49,22 @@ WSGI_APPLICATION = "{}.wsgi.application".format(PROJECT_NAME)
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "en")
 
+# Add monitoring app before geonode to allow template overrides
+if "geonode_project.monitoring" not in INSTALLED_APPS:
+    INSTALLED_APPS = ("geonode_project.monitoring",) + INSTALLED_APPS
+
 if PROJECT_NAME not in INSTALLED_APPS:
     INSTALLED_APPS += (PROJECT_NAME,)
+
+# Celery Monitoring Settings
+# Task history limit (number of recent tasks to display)
+CELERY_MONITORING_TASK_HISTORY_LIMIT = 50
+
+# Auto-refresh interval in seconds (0 to disable)
+CELERY_MONITORING_REFRESH_INTERVAL = 60
+
+# Queues to monitor
+CELERY_MONITORING_QUEUES = ['celery', 'default']
 
 # Location of url mappings
 ROOT_URLCONF = os.getenv("ROOT_URLCONF", "{}.urls".format(PROJECT_NAME))

@@ -1,0 +1,27 @@
+{% extends "geonode-mapstore-client/snippets/top_bar.html" %}
+{% load i18n %}
+{% load guardian_tags %}
+
+{% block extra_nav_items %}
+    {{ block.super }}
+    
+    {% if user.is_staff %}
+    <li>
+        <a href="{% url 'monitoring:dashboard' %}">
+            <i class="fa fa-heartbeat"></i> {% trans "Monitoring" %}
+        </a>
+    </li>
+    <li class="dropdown">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true">
+            <i class="fa fa-user-shield"></i> {% trans "Admin" %} <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-right" role="menu">
+            <li>
+                <a href="/admin/">
+                    <i class="fa fa-cog"></i> {% trans "Django Admin" %}
+                </a>
+            </li>
+        </ul>
+    </li>
+    {% endif %}
+{% endblock %}

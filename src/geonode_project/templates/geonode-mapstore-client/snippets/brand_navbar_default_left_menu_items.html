@@ -1,0 +1,47 @@
+{% load i18n %}
+
+<li>
+    <a id="all-resources" href="/all" target="" class="nav-link btn btn-default">
+        {% trans "All resources" %}
+    </a>
+</li>
+<li class="dropdown">
+    <button id="data-dropdown" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        {% trans "Data" %} <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="data-dropdown">
+        <li><a id="datasets" href="/datasets">{% trans "Datasets" %}</a></li>
+        <li><a id="documents" href="/documents">{% trans "Documents" %}</a></li>
+    </ul>
+</li>
+<li class="dropdown">
+    <button id="geoapps-dropdown" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        {% trans "GeoApps" %} <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="geoapps-dropdown">
+        <li><a id="maps" href="/maps">{% trans "Maps" %}</a></li>
+        <li><a id="geostories" href="/geostories">{% trans "GeoStories" %}</a></li>
+        <li><a id="dashboards" href="/dashboards">{% trans "Dashboards" %}</a></li>
+    </ul>
+</li>
+{% if user.is_staff %}
+<li class="dropdown">
+    <button id="admin-dropdown" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        {% trans "Admin" %} <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="admin-dropdown">
+        <li><a id="geonode-admin" href="/admin/"><i class="fa fa-cog"></i> {% trans "Geonode Admin" %}</a></li>
+        <li><a id="geoserver" href="/geoserver/"><i class="fa fa-server"></i> {% trans "Geoserver" %}</a></li>
+        <li><a id="monitoring" href="/monitoring/"><i class="fa fa-heartbeat"></i> {% trans "Monitoring" %}</a></li>
+    </ul>
+</li>
+{% endif %}
+<li class="dropdown">
+    <button id="people-dropdown" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        {% trans "People" %} <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="people-dropdown">
+        <li><a id="users" href="/people/">{% trans "Users" %}</a></li>
+        <li><a id="groups" href="/groups/">{% trans "Groups" %}</a></li>
+    </ul>
+</li>

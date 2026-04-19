@@ -1,0 +1,251 @@
+/* Celery Monitoring Dashboard Styles */
+
+.monitoring-dashboard {
+    padding: 20px 0;
+}
+
+.monitoring-dashboard .page-header {
+    border-bottom: 2px solid #1a5f7a;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+}
+
+.monitoring-dashboard .page-header h1 {
+    margin: 0;
+    color: #1a5f7a;
+    font-size: 2em;
+}
+
+.auto-refresh-badge {
+    float: right;
+    font-size: 0.4em;
+    color: #666;
+    font-weight: normal;
+}
+
+/* Statistics Cards */
+.stats-row {
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid;
+    transition: transform 0.2s ease;
+    margin-bottom: 20px;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card.workers {
+    border-color: #5cb85c;
+}
+
+.stat-card.active {
+    border-color: #337ab7;
+}
+
+.stat-card.scheduled {
+    border-color: #f0ad4e;
+}
+
+.stat-card.reserved {
+    border-color: #5bc0de;
+}
+
+.stat-icon {
+    font-size: 2em;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.stat-value {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #333;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 1em;
+    margin-top: 5px;
+}
+
+/* Admin Actions */
+.admin-actions {
+    margin-bottom: 30px;
+}
+
+.action-card {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+}
+
+.action-card h5 {
+    margin-top: 0;
+    color: #333;
+    font-weight: bold;
+}
+
+.action-card p {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 15px;
+}
+
+.action-card .form-group {
+    margin-bottom: 10px;
+}
+
+/* Tables */
+.tasks-table {
+    font-size: 0.9em;
+}
+
+.tasks-table th {
+    background: #1a5f7a;
+    color: white;
+}
+
+.tasks-table .badge {
+    padding: 5px 10px;
+}
+
+.badge-success {
+    background-color: #5cb85c;
+}
+
+.badge-warning {
+    background-color: #f0ad4e;
+}
+
+.badge-danger {
+    background-color: #d9534f;
+}
+
+.badge-info {
+    background-color: #5bc0de;
+}
+
+.badge-default {
+    background-color: #777;
+}
+
+/* Task status animations */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.status-running {
+    animation: pulse 2s infinite;
+}
+
+/* Buttons */
+.btn-action {
+    margin: 2px;
+    padding: 3px 8px;
+    font-size: 0.85em;
+}
+
+/* Worker Tasks Section */
+.worker-tasks {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.worker-tasks:last-child {
+    border-bottom: none;
+}
+
+.worker-tasks h5 {
+    color: #1a5f7a;
+    font-weight: bold;
+}
+
+.task-list {
+    margin-top: 10px;
+}
+
+.task-label {
+    display: inline-block;
+    margin: 2px;
+    font-size: 0.85em;
+    padding: 5px 8px;
+}
+
+/* Modal */
+.modal-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #1a5f7a;
+}
+
+.modal-title {
+    color: #1a5f7a;
+}
+
+/* Panel Customizations */
+.panel-default > .panel-heading {
+    background: #f8f9fa;
+    border-bottom: 2px solid #1a5f7a;
+}
+
+.panel-default > .panel-heading h4 {
+    color: #1a5f7a;
+    margin: 0;
+}
+
+/* Alert Customizations */
+.alert {
+    border-radius: 4px;
+}
+
+/* Code styling */
+code {
+    background: #f4f4f4;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .stat-value {
+        font-size: 1.8em;
+    }
+    
+    .auto-refresh-badge {
+        float: none;
+        display: block;
+        margin-top: 10px;
+    }
+    
+    .action-card {
+        margin-bottom: 20px;
+    }
+}
+
+/* Loading animation */
+.fa-spin {
+    animation: fa-spin 2s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

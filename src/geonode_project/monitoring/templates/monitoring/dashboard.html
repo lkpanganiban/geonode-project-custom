@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+{% load static %}
+{% load client_version %}
+
+{% block title %}Celery Monitoring - {{ block.super }}{% endblock %}
+
+{% block html_class %}msgapi{% endblock %}
+
+{% block extra_head %}
+    <link href="/static/fonts/montserrat.css" rel="stylesheet">
+    <link href="{% static 'mapstore/dist/themes/geonode.css' %}?{% client_version %}" rel="stylesheet" />
+    <link href="{% static 'lib/css/bootstrap-select.css' %}?{% client_version %}" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'monitoring/css/monitoring.css' %}?{% client_version %}">
+{% endblock %}
+
+{% block body_extra_class %}gn-legacy gn-theme {% if request.user_agent.is_mobile %}gn-mobile{% else %}gn-desktop{% endif %}{% endblock %}
+
+{% block header %}
+{% include 'geonode-mapstore-client/snippets/header.html' %}
+{% block gn_config %}
+    {% include 'geonode-mapstore-client/_geonode_config.html' %}
+{% endblock %}
+{% endblock %}
+
+{% block body %}
+<div class="container monitoring-dashboard">
+    <div class="page-header">
+        <h1>
+            <i class="fa fa-heartbeat"></i> Celery Monitoring Dashboard
+            <span class="auto-refresh-badge">
+                <i class="fa fa-refresh fa-spin"></i> Auto-refresh: 60s
+            </span>
+        </h1>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row stats-row">
+        <div class="col-md-3">
+            <div class="stat-card workers">
+                <div class="stat-icon">
+                    <i class="fa fa-server"></i>
+                </div>
+                <div class="stat-value" id="worker-count">{{ worker_count }}</div>
+                <div class="stat-label">Workers Online</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card active">
+                <div class="stat-icon">
+                    <i class="fa fa-play-circle"></i>
+                </div>
+                <div class="stat-value" id="active-count">{{ active_tasks }}</div>
+                <div class="stat-label">Active Tasks</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card scheduled">
+                <div class="stat-icon">
+                    <i class="fa fa-clock-o"></i>
+                </div>
+                <div class="stat-value" id="scheduled-count">{{ scheduled_tasks }}</div>
+                <div class="stat-label">Scheduled</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card reserved">
+                <div class="stat-icon">
+                    <i class="fa fa-tasks"></i>
+                </div>
+                <div class="stat-value" id="reserved-count">{{ reserved_tasks }}</div>
+                <div class="stat-label">Reserved</div>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-warning">
+        <i class="fa fa-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Admin Actions -->
+    <div class="panel panel-default admin-actions">
+        <div class="panel-heading">
+            <h4><i class="fa fa-cogs"></i> Admin Actions</h4>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="action-card">
+                        <h5>Purge Queue</h5>
+                        <p>Remove all pending messages from a queue</p>
+                        <div class="form-group">
+                            <select id="purge-queue-select" class="form-control">
+                                {% for queue in queues %}
+                                <option value="{{ queue }}">{{ queue }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button class="btn btn-danger" onclick="purgeQueue()">
+                            <i class="fa fa-trash"></i> Purge Queue
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="action-card">
+                        <h5>Rate Limit</h5>
+                        <p>Set rate limit for a task type</p>
+                        <div class="form-group">
+                            <input type="text" id="rate-task-name" class="form-control" placeholder="Task name (e.g., myapp.tasks.process)">
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="rate-limit-value" class="form-control" placeholder="e.g., 10/m or 100/h">
+                        </div>
+                        <button class="btn btn-warning" onclick="setRateLimit()">
+                            <i class="fa fa-sliders"></i> Set Rate
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="action-card">
+                        <h5>Manual Refresh</h5>
+                        <p>Update dashboard data immediately</p>
+                        <button class="btn btn-primary" onclick="refreshData()">
+                            <i class="fa fa-refresh"></i> Refresh Now
+                        </button>
+                        <button class="btn btn-default" onclick="toggleAutoRefresh()" style="margin-top: 10px;">
+                            <i class="fa fa-pause" id="autorefresh-icon"></i> <span id="autorefresh-text">Pause Auto-refresh</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 20px;">
+                <div class="col-md-12">
+                    <div class="action-card">
+                        <h5><i class="fa fa-play-circle"></i> Trigger Task Manually</h5>
+                        <p>Send a task to Celery workers for immediate execution</p>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Task Name</label>
+                                    <select id="trigger-task-select" class="form-control" onchange="toggleTaskInputs()">
+                                        <option value="">-- Select a task --</option>
+                                        <optgroup label="Sample Test Tasks">
+                                            <option value="geonode_project.monitoring.sample_task">Sample Task (5s duration)</option>
+                                            <option value="geonode_project.monitoring.hello_world">Hello World</option>
+                                            <option value="geonode_project.monitoring.calculate_sum">Calculate Sum</option>
+                                        </optgroup>
+                                        {% if workers %}
+                                        <optgroup label="Registered Tasks">
+                                            {% for worker in workers %}
+                                                {% for task_name in worker.registered_tasks %}
+                                                <option value="{{ task_name }}">{{ task_name }}</option>
+                                                {% endfor %}
+                                            {% endfor %}
+                                        </optgroup>
+                                        {% endif %}
+                                        <option value="custom">Custom Task (enter below)</option>
+                                    </select>
+                                    <small class="text-muted">
+                                        <strong>Test tasks:</strong> "Sample Task" runs for 5 seconds, "Hello World" greets with a name, "Calculate Sum" adds numbers
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Custom Task Name</label>
+                                    <input type="text" id="trigger-task-custom" class="form-control" placeholder="e.g., myapp.tasks.send_email" disabled>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Arguments (JSON array)</label>
+                                    <input type="text" id="trigger-task-args" class="form-control" placeholder='e.g., ["arg1", 123, true]'>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>&nbsp;</label>
+                                    <button class="btn btn-success form-control" onclick="triggerTask()" style="height: 34px; padding: 6px 12px;">
+                                        <i class="fa fa-play"></i> Trigger
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="trigger-task-result" class="alert" style="display: none; margin-top: 10px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workers Table -->
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4><i class="fa fa-server"></i> Workers</h4>
+        </div>
+        <div class="panel-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Worker Name</th>
+                            <th>Status</th>
+                            <th>Processed</th>
+                            <th>Active Tasks</th>
+                            <th>Pool Size</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="workers-tbody">
+                        {% for worker in workers %}
+                        <tr>
+                            <td><strong>{{ worker.name }}</strong></td>
+                            <td>
+                                <span class="badge badge-success">Online</span>
+                            </td>
+                            <td>{{ worker.stats.total.tasks|default:"0" }}</td>
+                            <td>{{ worker.active_tasks|length }}</td>
+                            <td>N/A</td>
+                            <td>
+                                <button class="btn btn-xs btn-info" onclick="showWorkerDetails('{{ worker.name }}')">
+                                    <i class="fa fa-info-circle"></i> Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                <i class="fa fa-exclamation-circle"></i> No workers connected. Make sure Celery workers are running.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tasks Table -->
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4><i class="fa fa-play-circle"></i> Active Tasks</h4>
+        </div>
+        <div class="panel-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover tasks-table">
+                    <thead>
+                        <tr>
+                            <th>Task ID</th>
+                            <th>Name</th>
+                            <th>Worker</th>
+                            <th>Args</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="active-tasks-tbody">
+                        {% for worker in workers %}
+                            {% for task in worker.active_tasks %}
+                            <tr>
+                                <td><code>{{ task.id|truncatechars:12 }}</code></td>
+                                <td>{{ task.name }}</td>
+                                <td>{{ worker.name }}</td>
+                                <td>{{ task.args|truncatechars:50 }}</td>
+                                <td>
+                                    <button class="btn btn-xs btn-danger" onclick="revokeTask('{{ task.id }}', true)">
+                                        <i class="fa fa-stop"></i> Terminate
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                <i class="fa fa-check-circle"></i> No active tasks
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registered Tasks -->
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4><i class="fa fa-list"></i> Registered Tasks</h4>
+        </div>
+        <div class="panel-body">
+            {% for worker in workers %}
+            <div class="worker-tasks">
+                <h5><i class="fa fa-server"></i> {{ worker.name }}</h5>
+                <div class="task-list">
+                    {% for task_name in worker.registered_tasks %}
+                    <span class="label label-default task-label">{{ task_name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Task Trigger History -->
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4><i class="fa fa-history"></i> Task Trigger History 
+                <span class="badge" id="history-count">{{ task_history|length }}</span>
+                <div class="btn-group pull-right">
+                    <button class="btn btn-xs btn-default" onclick="refreshTaskHistory()">
+                        <i class="fa fa-refresh"></i> Refresh
+                    </button>
+                    <button class="btn btn-xs btn-warning" onclick="cleanupCompletedTasks()">
+                        <i class="fa fa-check-circle"></i> Clear Completed
+                    </button>
+                    <button class="btn btn-xs btn-danger" onclick="clearAllHistory()">
+                        <i class="fa fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </h4>
+        </div>
+        <div class="panel-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="task-history-table">
+                    <thead>
+                        <tr>
+                            <th>Task ID</th>
+                            <th>Task Name</th>
+                            <th>Arguments</th>
+                            <th>Triggered By</th>
+                            <th>Triggered At</th>
+                            <th>Status</th>
+                            <th>Result</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="task-history-tbody">
+                        {% for task in task_history %}
+                        <tr id="history-row-{{ task.task_id }}">
+                            <td><code>{{ task.task_id|truncatechars:12 }}</code></td>
+                            <td>{{ task.task_name }}</td>
+                            <td>{{ task.args|truncatechars:30 }}</td>
+                            <td>{{ task.triggered_by.username|default:"Unknown" }}</td>
+                            <td>{{ task.triggered_at|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                <span class="badge badge-{% if task.status == 'SUCCESS' %}success{% elif task.status == 'FAILURE' %}danger{% elif task.status == 'PENDING' %}warning{% else %}info{% endif %}">
+                                    {{ task.status }}
+                                </span>
+                            </td>
+                            <td>{{ task.result|truncatechars:50|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr id="history-empty-row">
+                            <td colspan="8" class="text-center text-muted">
+                                <i class="fa fa-info-circle"></i> No tasks triggered yet. Use the "Trigger Task Manually" form above to run tasks.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Worker Details Modal -->
+<div class="modal fade" id="workerModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title"><i class="fa fa-server"></i> Worker Details</h4>
+            </div>
+            <div class="modal-body" id="worker-modal-body">
+                <div class="text-center">
+                    <i class="fa fa-spinner fa-spin"></i> Loading...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+{% include 'geonode-mapstore-client/snippets/footer.html' %}
+{% endblock %}
+
+{% block extra_script %}
+<script src="{% static 'monitoring/js/dashboard.js' %}"></script>
+<script>
+    // Initialize dashboard configuration
+    var MONITORING_CONFIG = {
+        refreshUrl: "{% url 'monitoring:api_workers' %}",
+        csrfToken: "{{ csrf_token }}",
+        retryUrl: "{% url 'monitoring:api_retry' %}",
+        purgeUrl: "{% url 'monitoring:api_purge' %}",
+        rateLimitUrl: "{% url 'monitoring:api_rate_limit' %}",
+        revokeUrl: "{% url 'monitoring:api_revoke' %}",
+        triggerUrl: "{% url 'monitoring:api_trigger' %}",
+        historyUrl: "{% url 'monitoring:api_history' %}",
+        deleteTaskUrl: "{% url 'monitoring:api_delete_task' task_id='TASK_ID' %}",
+        clearHistoryUrl: "{% url 'monitoring:api_clear_history' %}",
+        cleanupCompletedUrl: "{% url 'monitoring:api_cleanup_completed' %}"
+    };
+    
+    // Cleanup functions - defined globally to ensure they're accessible
+    function clearAllHistory() {
+        if (!confirm('Are you sure you want to delete ALL tasks from history? This cannot be undone.')) {
+            return;
+        }
+        
+        console.log('Clearing all history...');
+        
+        fetch(MONITORING_CONFIG.clearHistoryUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': MONITORING_CONFIG.csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                console.log('History cleared:', data.message);
+                if (typeof refreshTaskHistory === 'function') {
+                    refreshTaskHistory();
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(error) {
+            console.error('Error clearing history:', error);
+            alert('Error clearing history: ' + error);
+        });
+    }
+    
+    function cleanupCompletedTasks() {
+        if (!confirm('Are you sure you want to clear all completed tasks (SUCCESS, FAILURE, REVOKED)?')) {
+            return;
+        }
+        
+        console.log('Cleaning up completed tasks...');
+        
+        fetch(MONITORING_CONFIG.cleanupCompletedUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': MONITORING_CONFIG.csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                console.log('Completed tasks cleaned up:', data.message);
+                if (typeof refreshTaskHistory === 'function') {
+                    refreshTaskHistory();
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(error) {
+            console.error('Error cleaning up tasks:', error);
+            alert('Error cleaning up tasks: ' + error);
+        });
+    }
+    
+    function deleteTaskHistory(taskId) {
+        if (!confirm('Are you sure you want to delete this task from history?')) {
+            return;
+        }
+        
+        console.log('Deleting task:', taskId);
+        
+        fetch(MONITORING_CONFIG.deleteTaskUrl.replace('TASK_ID', taskId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': MONITORING_CONFIG.csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                console.log('Task deleted:', data.message);
+                if (typeof refreshTaskHistory === 'function') {
+                    refreshTaskHistory();
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(error) {
+            console.error('Error deleting task:', error);
+            alert('Error deleting task: ' + error);
+        });
+    }
+</script>
+{% endblock %}

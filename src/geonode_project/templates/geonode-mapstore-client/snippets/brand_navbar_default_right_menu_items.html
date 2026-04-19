@@ -1,0 +1,39 @@
+{% load i18n %}
+{% load guardian_tags %}
+
+{% if user.is_authenticated %}
+<li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+        {% if user.avatar %}
+            <img src="{{ user.avatar.avatar_url }}" class="img-circle" />
+        {% else %}
+            <span class="glyphicon glyphicon-user"></span>
+        {% endif %}
+    </a>
+    <ul class="dropdown-menu dropdown-menu-right" role="menu">
+        <li>
+            <a href="{% url 'profile_detail' user.username %}">
+                <i class="fa fa-user"></i> {% trans "Profile" %}
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'recent-activity' %}">
+                <i class="fa fa-clock-o"></i> {% trans "Recent activity" %}
+            </a>
+        </li>
+
+        <li class="divider"></li>
+        <li>
+            <a href="{% url 'account_logout' %}">
+                <i class="fa fa-sign-out"></i> {% trans "Log out" %}
+            </a>
+        </li>
+    </ul>
+</li>
+{% else %}
+<li>
+    <a id="sign-in" href="{% url 'account_login' %}?next={{ request.path }}">
+        <i class="fa fa-sign-in"></i> {% trans "Sign in" %}
+    </a>
+</li>
+{% endif %}
