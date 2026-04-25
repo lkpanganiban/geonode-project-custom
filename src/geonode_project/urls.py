@@ -23,10 +23,12 @@
 # related issue: https://github.com/GeoNode/geonode-project/issues/570
 from django.urls import path, include
 from geonode.urls import urlpatterns, handler500  # noqa
+from geonode_project.views import map_app_view
 
 # Add monitoring URLs before geonode URLs
 urlpatterns = [
     path('monitoring/', include('geonode_project.monitoring.urls')),
+    path('map-app/', map_app_view, name='map_app'),
 ] + urlpatterns
 
 # You can register your own urlpatterns here
